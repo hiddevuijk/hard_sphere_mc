@@ -1,5 +1,8 @@
-# Object file
+*.ipynb_checkpoints/
+*.swp
+test.exe
+main.o
+*.exe
 *.o
-
-# Ada Library Information
-*.ali
+*.dat
+data/*
