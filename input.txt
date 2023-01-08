@@ -1,0 +1,20 @@
+seed = 123456780
+
+number_of_particles = 900
+Lx = 10.0
+Ly = 10.0
+Lz = -1
+
+max_mc_step_size = 0.1
+verlet_list_radius = 2.5
+
+number_of_bins = 1000
+bin_size = 0.1
+
+zmax = 40
+zmin = -40
+
+initial_MC_moves = 10000
+MC_moves_per_sample = 5
+number_of_samples = 200000
+
