@@ -14,7 +14,7 @@ bin_size = 0.1
 zmax = 40
 zmin = -40
 
-initial_MC_moves = 10000
+initial_MC_moves = 0
 MC_moves_per_sample = 5
-number_of_samples = 200000
+number_of_samples = 2000
 

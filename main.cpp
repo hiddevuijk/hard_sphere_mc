@@ -2,6 +2,7 @@
 #include "vec3.h"
 #include "system.h"
 #include "initialize_positions.h"
+#include "read_positions.h"
 
 #include "pair_correlation.h"
 #include "density.h"
@@ -69,8 +70,10 @@ int main()
 					max_mc_step_size, verlet_list_radius, potential);
 
 
-  vector<Vec3>  init_positions =
-      initialize_position(number_of_particles, 1.1,0.0, Lx,0.0, Ly,zmin, zmax);
+  //vector<Vec3>  init_positions =
+  //    initialize_position(number_of_particles, 1.1,0.0, Lx,0.0, Ly,zmin, zmax);
+
+   vector<Vec3> init_positions = read_positions("positions_init.dat");
 
   system.SetPositions(init_positions);
 
