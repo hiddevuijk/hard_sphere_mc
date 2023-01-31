@@ -13,10 +13,10 @@
 #include <fstream>
 #include <vector>
 #include <cmath>
+#include <string>
 #include <boost/random.hpp>
 
 #include "vec3.h"
-#include <string>
 
 namespace systemMC_helper {
 
@@ -24,9 +24,23 @@ double distance_squared(Vec3 r1, Vec3 r2,
                       double Lx, double Ly, double Lz)
 {
 	r1 -= r2;
-	if (Lx > 0) r1.x -= Lx * round(r1.x/Lx);
-	if (Ly > 0) r1.y -= Ly * round(r1.y/Ly);
-	if (Lz > 0) r1.z -= Lz * round(r1.z/Lz);
+	//if (Lx > 0) r1.x -= Lx * round(r1.x/Lx);
+	//if (Ly > 0) r1.y -= Ly * round(r1.y/Ly);
+	//if (Lz > 0) r1.z -= Lz * round(r1.z/Lz);
+
+  if (Lx > 0) {
+    r1.x = fabs(r1.x);
+    r1.x -= static_cast<int>(r1.x / Lx + 0.5) * Lx;
+  }
+  if (Ly > 0) {
+    r1.y = fabs(r1.y);
+    r1.y -= static_cast<int>(r1.y / Ly + 0.5) * Ly;
+  }
+  if (Lz > 0) {
+    r1.z = fabs(r1.z);
+    r1.z -= static_cast<int>(r1.z / Lz + 0.5) * Lz;
+  }
+
 	return r1.LengthSquared();
 }
 
@@ -34,9 +48,23 @@ double distance(Vec3 r1, Vec3 r2,
                 double Lx, double Ly, double Lz)
 {
 	r1 -= r2;
-	if (Lx > 0) r1.x -= Lx * round(r1.x/Lx);
-	if (Ly > 0) r1.y -= Ly * round(r1.y/Ly);
-	if (Lz > 0) r1.z -= Lz * round(r1.z/Lz);
+	//if (Lx > 0) r1.x -= Lx * round(r1.x/Lx);
+	//if (Ly > 0) r1.y -= Ly * round(r1.y/Ly);
+	//if (Lz > 0) r1.z -= Lz * round(r1.z/Lz);
+  if (Lx > 0) {
+    r1.x = fabs(r1.x);
+    r1.x -= static_cast<int>(r1.x / Lx + 0.5) * Lx;
+  }
+  if (Ly > 0) {
+    r1.y = fabs(r1.y);
+    r1.y -= static_cast<int>(r1.y / Ly + 0.5) * Ly;
+  }
+  if (Lz > 0) {
+    r1.z = fabs(r1.z);
+    r1.z -= static_cast<int>(r1.z / Lz + 0.5) * Lz;
+  }
+
+
 	return r1.Length();
 }
 
@@ -82,6 +110,10 @@ class SystemMC {
 		{ return number_of_attempted_moves_; }
   long unsigned int GetNumberOfAcceptedMoves() const
 		{ return number_of_accepted_moves_; }
+  long unsigned int GetNumberOfNeighborListUpdates() const
+		{ return number_of_neighbor_list_updates_; }
+
+  // delete
   long unsigned int GetNumberOfVerletListUpdates() const
 		{ return number_of_verlet_list_updates_; }
 
@@ -104,6 +136,7 @@ class SystemMC {
 
 
 	void UpdateVerletList();
+	void UpdateNeighborList();
 
 	// private variable
 
@@ -124,6 +157,9 @@ class SystemMC {
 	// particle positions at when the Verlet list was last updated
 	std::vector<Vec3> positions_at_last_update_;
 
+  // neighbor list
+  //std::vector<std::list<unsigned int> > neighbor_list_; 
+
 	// Verlet list
 	std::vector<std::vector<unsigned int> > verlet_list_;
 	// number of neighbors in the Verlet list
@@ -136,6 +172,8 @@ class SystemMC {
 	// keep track of the performance of the MC algorithm
 	unsigned long int number_of_attempted_moves_;
 	unsigned long int number_of_accepted_moves_;
+	unsigned long int number_of_neighbor_list_updates_;
+  // delete
 	unsigned long int number_of_verlet_list_updates_;
 
   Potential potential_;	
@@ -294,6 +332,32 @@ void SystemMC<Potential>::SavePositions(std::string name) const
 
 	out.close();
 }
+
+template <class Potential>
+void SystemMC<Potential>::UpdateNeighborList()
+{
+  number_of_neighbor_list_updates_ += 1;
+
+  // HERE
+  //neighbor_list = get_neighbor_list(Lx,Ly,L
+  double dist_sq;
+  for (unsigned int i = 0; i < number_of_particles_; ++i) {
+    positions_at_last_update_[i] = positions_[i];
+    for (unsigned int j = i + 1; j < number_of_particles_; ++j) {
+      dist_sq = systemMC_helper::distance_squared(
+                  positions_[i], positions_[j], 
+                  system_size_x_, system_size_y_, system_size_z_);
+      if (dist_sq < verlet_list_radius_ * verlet_list_radius_ ) {
+        verlet_list_[i][ number_of_neighbors_[i] ] = j;
+        verlet_list_[j][ number_of_neighbors_[j] ] = i;
+        ++number_of_neighbors_[i];
+        ++number_of_neighbors_[j];
+      }
+    }
+  }
+
+}
+
 
 template <class Potential>
 void SystemMC<Potential>::UpdateVerletList()

@@ -16,5 +16,5 @@ zmin = -40
 
 initial_MC_moves = 0
 MC_moves_per_sample = 5
-number_of_samples = 2000
+number_of_samples = 200
 
