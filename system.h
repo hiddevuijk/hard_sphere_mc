@@ -12,14 +12,37 @@
 #include <iostream>
 #include <fstream>
 #include <vector>
+#include <list>
 #include <cmath>
 #include <string>
 #include <boost/random.hpp>
 
 #include "vec3.h"
+#include "neighbor_list.h"
 
 namespace systemMC_helper {
 
+double distance_squared(Vec3 r1, Vec3 r2,
+                      double Lx, double Ly, double Lz,
+                      bool pbc_x, bool pbc_y, bool pbc_z)
+{
+	r1 -= r2;
+
+  if (pbc_x) {
+    r1.x = fabs(r1.x);
+    r1.x -= static_cast<int>(r1.x / Lx + 0.5) * Lx;
+  }
+  if (pbc_y) {
+    r1.y = fabs(r1.y);
+    r1.y -= static_cast<int>(r1.y / Ly + 0.5) * Ly;
+  }
+  if (pbc_z) {
+    r1.z = fabs(r1.z);
+    r1.z -= static_cast<int>(r1.z / Lz + 0.5) * Lz;
+  }
+
+	return r1.LengthSquared();
+}
 double distance_squared(Vec3 r1, Vec3 r2,
                       double Lx, double Ly, double Lz)
 {
@@ -43,6 +66,32 @@ double distance_squared(Vec3 r1, Vec3 r2,
 
 	return r1.LengthSquared();
 }
+
+double distance(Vec3 r1, Vec3 r2,
+                double Lx, double Ly, double Lz,
+                bool pbc_x, bool pbc_y, bool pbc_z)
+{
+	r1 -= r2;
+	//if (Lx > 0) r1.x -= Lx * round(r1.x/Lx);
+	//if (Ly > 0) r1.y -= Ly * round(r1.y/Ly);
+	//if (Lz > 0) r1.z -= Lz * round(r1.z/Lz);
+  if (pbc_x) {
+    r1.x = fabs(r1.x);
+    r1.x -= static_cast<int>(r1.x / Lx + 0.5) * Lx;
+  }
+  if (pbc_y) {
+    r1.y = fabs(r1.y);
+    r1.y -= static_cast<int>(r1.y / Ly + 0.5) * Ly;
+  }
+  if (pbc_z) {
+    r1.z = fabs(r1.z);
+    r1.z -= static_cast<int>(r1.z / Lz + 0.5) * Lz;
+  }
+
+
+	return r1.Length();
+}
+
 
 double distance(Vec3 r1, Vec3 r2,
                 double Lx, double Ly, double Lz)
@@ -77,6 +126,7 @@ class SystemMC {
 		   double system_size_x,
 		   double system_size_y,
 		   double system_size_z,
+       bool pbc_x, bool pbc_y, bool pbc_z,
 		   double max_mc_step_size,
 		   double verlet_list_radius,
 		   Potential potential);
@@ -145,6 +195,8 @@ class SystemMC {
 	double system_size_x_;
 	double system_size_y_;
 	double system_size_z_;
+
+  bool pbc_x_, pbc_y_, pbc_z_;
 	
 	// max step size of an MC move
 	double max_mc_step_size_;
@@ -158,7 +210,7 @@ class SystemMC {
 	std::vector<Vec3> positions_at_last_update_;
 
   // neighbor list
-  //std::vector<std::list<unsigned int> > neighbor_list_; 
+  std::vector<std::list<unsigned int> > neighbor_list_; 
 
 	// Verlet list
 	std::vector<std::vector<unsigned int> > verlet_list_;
@@ -186,6 +238,7 @@ SystemMC<Potential>::SystemMC(
 	double system_size_x,
 	double system_size_y,
 	double system_size_z,
+  bool pbc_x, bool pbc_y, bool pbc_z,
 	double max_mc_step_size,
 	double verlet_list_radius,
 	Potential potential)
@@ -200,6 +253,7 @@ SystemMC<Potential>::SystemMC(
 	system_size_x_(system_size_x),
 	system_size_y_(system_size_y),
 	system_size_z_(system_size_z),
+  pbc_x_(pbc_x), pbc_y_(pbc_y), pbc_z_(pbc_z),
 	max_mc_step_size_(max_mc_step_size),
 	verlet_list_radius_(verlet_list_radius),
 	number_of_attempted_moves_(0),
@@ -287,14 +341,28 @@ void SystemMC<Potential>::MCMoveNoVerlet()
   unsigned int i = (unsigned int) number_of_particles_ * (1 + random_uniform_distribution_11_()) / 2;
 
   // random displacement
-  Vec3 new_position(random_uniform_distribution_11_(),
+  Vec3 new_position(
+            random_uniform_distribution_11_(),
 				    random_uniform_distribution_11_(),
 				    random_uniform_distribution_11_());
+
   new_position *= max_mc_step_size_;
   new_position += positions_[i];
 
   // check for overlap
   bool overlap = false;
+  for (std::list<unsigned int>::iterator it=neighbor_list_[i].begin();
+       it != neighbor_list_[i].end(); ++it) {
+    if (systemMC_helper::distance_squared(new_position,
+        positions_[*it], system_size_x_, system_size_y_,
+        system_size_z_, pbc_x_, pbc_y_, pbc_z_)
+        < 1.0 ) {
+        
+      overlap = true;
+      break;
+    }
+  }
+
   // nj is the njth neighbor in the Verlet list,
   // its index is j = verlet_list_[i][nj]
   for (unsigned int j = 0; j < number_of_particles_; ++j) {
@@ -309,7 +377,7 @@ void SystemMC<Potential>::MCMoveNoVerlet()
   }
 
   if (overlap == false) {
-    // ADD ECTERNAL POTENTIAL
+    // ADD ExTERNAL POTENTIAL
  
     // Accept MC move
     positions_[i] = new_position;    
@@ -338,24 +406,15 @@ void SystemMC<Potential>::UpdateNeighborList()
 {
   number_of_neighbor_list_updates_ += 1;
 
-  // HERE
-  //neighbor_list = get_neighbor_list(Lx,Ly,L
-  double dist_sq;
-  for (unsigned int i = 0; i < number_of_particles_; ++i) {
-    positions_at_last_update_[i] = positions_[i];
-    for (unsigned int j = i + 1; j < number_of_particles_; ++j) {
-      dist_sq = systemMC_helper::distance_squared(
-                  positions_[i], positions_[j], 
-                  system_size_x_, system_size_y_, system_size_z_);
-      if (dist_sq < verlet_list_radius_ * verlet_list_radius_ ) {
-        verlet_list_[i][ number_of_neighbors_[i] ] = j;
-        verlet_list_[j][ number_of_neighbors_[j] ] = i;
-        ++number_of_neighbors_[i];
-        ++number_of_neighbors_[j];
-      }
-    }
-  }
+  neighbor_list_ = get_neighbor_list(
+          system_size_x_, system_size_y_, system_size_z_,
+          pbc_x_, pbc_y_, pbc_z_,true, verlet_list_radius_,
+          positions_);
 
+  //neighbor_list_ = get_verlet_list(
+  //        system_size_x_, system_size_y_, system_size_z_,
+  //        pbc_x_, pbc_y_, pbc_z_,true, verlet_list_radius_,
+  //        positions_);
 }
 
 

@@ -58,6 +58,10 @@ int main()
   double zmax = params.get_parameter<double>("zmax");
   double zmin = params.get_parameter<double>("zmin");
 
+  bool pbc_x = true;
+  bool pbc_y = pbc_x;
+  bool pbc_z = pbc_x;
+
   Density density(zmin, zmax, number_of_bins, 'z', Lx * Ly);
 
   //PairCorrelation pair_corr(number_of_bins, bin_size, bulk_density, Lx, Ly, Lz);
@@ -66,7 +70,7 @@ int main()
   Potential potential;
   potential.is_nonzero = true;
 
-  SystemMC<Potential> system(seed,Lx, Ly, Lz,
+  SystemMC<Potential> system(seed,Lx, Ly, Lz,pbc_x,pbc_y,pbc_z,
 					max_mc_step_size, verlet_list_radius, potential);
 
 
