@@ -96,8 +96,10 @@ VecList get_neighbor_list(
 
   // a three dimensional array containing lists with the 
   // particle indices of the particles in that cell
-  Vec3List cell_list(n_cells_z,
-            Vec2List(n_cells_y, VecList(n_cells_x) ) );
+  //Vec3List cell_list(n_cells_z,
+  //          Vec2List(n_cells_y, VecList(n_cells_x) ) );
+  Vec3List cell_list(n_cells_x,
+            Vec2List(n_cells_y, VecList(n_cells_z) ) );
 
   // the i'th element contains the cell index
   std::vector<TripleIndex> particles_cell_index(n_particles);

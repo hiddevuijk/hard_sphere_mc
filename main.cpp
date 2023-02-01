@@ -16,9 +16,10 @@ class Potential {
  public:
 
   double External(Vec3 r, double t) {
-    return 0.5 * r.z * r.z;
+    return 0.5 * U * (r.z - z0) * (r.z - z0);
   }
-
+  double U;
+  double z0;
   bool is_nonzero;
 };
 
@@ -51,39 +52,36 @@ int main()
 
   unsigned int number_of_bins =
       params.get_parameter<unsigned int>("number_of_bins");
+ 
   //double bin_size =
   //      params.get_parameter<double>("bin_size");
   //double bulk_density = number_of_particles / (Lx * Ly * Lz);
 
-  double zmax = params.get_parameter<double>("zmax");
-  double zmin = params.get_parameter<double>("zmin");
-
   bool pbc_x = true;
-  bool pbc_y = pbc_x;
-  bool pbc_z = pbc_x;
+  bool pbc_y = true;
+  bool pbc_z = false;
 
-  Density density(zmin, zmax, number_of_bins, 'z', Lx * Ly);
+  Density density(0, Lz, number_of_bins, 'z', Lx * Ly);
 
   //PairCorrelation pair_corr(number_of_bins, bin_size, bulk_density, Lx, Ly, Lz);
 
 
   Potential potential;
+  potential.U = 2.0;
+  potential.z0 = Lz / 2.0;
   potential.is_nonzero = true;
 
   SystemMC<Potential> system(seed,Lx, Ly, Lz,pbc_x,pbc_y,pbc_z,
 					max_mc_step_size, verlet_list_radius, potential);
 
+  vector<Vec3>  init_positions =
+      initialize_position(number_of_particles, 1.1,Lx,Ly,Lz);
 
-  //vector<Vec3>  init_positions =
-  //    initialize_position(number_of_particles, 1.1,0.0, Lx,0.0, Ly,zmin, zmax);
-
-   vector<Vec3> init_positions = read_positions("positions_init.dat");
-
+   //vector<Vec3> init_positions = read_positions("positions_init.dat");
   system.SetPositions(init_positions);
 
   string positions_name = "positions0.dat";
   system.SavePositions(positions_name); 
-
 
   //system.MCMoveNoVerletFull(initial_MC_moves);
   system.MCMoveFull(initial_MC_moves);
@@ -94,7 +92,6 @@ int main()
 
 
   for (long unsigned int i = 0; i < number_of_samples; i++) {
-    //system.MCMoveNoVerletFull(MC_moves_per_sample);
   	system.MCMoveFull(MC_moves_per_sample);
     //pair_corr.sample(system.GetPositions());
     density.Sample(system.GetPositions());
@@ -111,15 +108,12 @@ int main()
   positions_name = "positions.dat";
   system.SavePositions(positions_name); 
 
-  cout << "Accepted moves per particle per Verlet list update:\n" << flush;
-  cout << system.GetNumberOfAcceptedMoves() * 1.0
-       / (system.GetNumberOfVerletListUpdates() * number_of_particles)
-	   << endl << flush;
+  cout << 1.0 * system.GetNumberOfNeighborListUpdates()/ system.GetNumberOfAttemptedMoves() << endl << flush;
+  cout <<  system.GetNumberOfAttemptedMoves() << endl << flush;
 
-  cout << "Attempted moves per particle per Verlet list update:\n" << flush;
-  cout << system.GetNumberOfAttemptedMoves() * 1.0
-       / (system.GetNumberOfVerletListUpdates() * number_of_particles)
-	   << endl << flush;
+  cout << system.GetNumberOfAttemptedMoves() << endl;
+  cout << system.GetNumberOfNeighborListUpdates() << endl;;
+
 
   return 0;
 }
