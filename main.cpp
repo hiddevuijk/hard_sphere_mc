@@ -15,11 +15,14 @@ using namespace std;
 class Potential {
  public:
 
-  double External(Vec3 r, double t) {
-    return 0.5 * U * (r.z - z0) * (r.z - z0);
+  double External(const Vec3& r, double t) {
+    double A =  1.5 * (r.z - 7.0) * (r.z - 7.0);
+    //double B = - 2.5 * (1 - cos(pi100*t));
+    //B *= exp( - 5 * (r.z - 7.0) * (r.z - 7.0));
+    double B = 0;
+    return A + B;
   }
-  double U;
-  double z0;
+  double pi100 = 314.1592653589793238462643383279502884197;
   bool is_nonzero;
 };
 
@@ -30,8 +33,8 @@ int main()
   unsigned long int seed =
 		params.get_parameter<unsigned long int>("seed");
 
-  unsigned int number_of_particles =
-		params.get_parameter<unsigned int>("number_of_particles");
+  //unsigned int number_of_particles =
+	//	params.get_parameter<unsigned int>("number_of_particles");
 
   double Lx = params.get_parameter<double>("Lx");
   double Ly = params.get_parameter<double>("Ly");
@@ -67,17 +70,15 @@ int main()
 
 
   Potential potential;
-  potential.U = 2.0;
-  potential.z0 = Lz / 2.0;
   potential.is_nonzero = true;
 
   SystemMC<Potential> system(seed,Lx, Ly, Lz,pbc_x,pbc_y,pbc_z,
 					max_mc_step_size, verlet_list_radius, potential);
 
-  vector<Vec3>  init_positions =
-      initialize_position(number_of_particles, 1.1,Lx,Ly,Lz);
+  //vector<Vec3>  init_positions =
+  //    initialize_position(number_of_particles, 1.01,Lx,Ly,Lz);
 
-   //vector<Vec3> init_positions = read_positions("positions_init.dat");
+   vector<Vec3> init_positions = read_positions("positions_init.dat");
   system.SetPositions(init_positions);
 
   string positions_name = "positions0.dat";
@@ -111,7 +112,6 @@ int main()
   cout << 1.0 * system.GetNumberOfNeighborListUpdates()/ system.GetNumberOfAttemptedMoves() << endl << flush;
   cout <<  system.GetNumberOfAttemptedMoves() << endl << flush;
 
-  cout << system.GetNumberOfAttemptedMoves() << endl;
   cout << system.GetNumberOfNeighborListUpdates() << endl;;
 
 

@@ -247,7 +247,6 @@ SystemMC<Potential>::SystemMC(
   max_diff_ = (verlet_list_radius - 1) / 2;
   // maximum MC step size sqrt(3) * max Mc step in one dim
   max_diff_ -= sqrt(3.0) * max_mc_step_size_;
-  std::cout << max_diff_ << std::endl;
   
 }
 

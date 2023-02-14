@@ -3,8 +3,8 @@ OBJS = main.o
 CC = g++
 CFLAGS = -c -Wall -g -std=c++11
 LFLAGS = -Wall -g
-CFLAGS = -c -Wall -Ofast -DNDEBUG -std=c++11
-LFLAGS = -Wall -Ofast -DNDEBUG
+CFLAGS = -c -Wall -O3 -DNDEBUG -std=c++11
+LFLAGS = -Wall -O3 -DNDEBUG
 
 $(TARGET): $(OBJS)
 	$(CC) $(LFLAGS) $(OBJS) -o $(TARGET)
